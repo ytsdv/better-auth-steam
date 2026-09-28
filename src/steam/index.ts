@@ -139,8 +139,8 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 						ctx.context.baseURL,
 						isTrustedRedirect
 					);
-					const { state } = await generateState(ctx, undefined, {
-						returnTo: callbackEndpoint
+					const { state } = await generateState(ctx, {
+						additionalData: { returnTo: callbackEndpoint }
 					});
 					const url = buildSteamAuthorizationURL(callbackEndpoint, realm, state);
 					ctx.setHeader('Location', url);
@@ -193,14 +193,13 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 						ctx.context.baseURL,
 						isTrustedRedirect
 					);
-					const { state } = await generateState(
-						ctx,
-						{
+					const { state } = await generateState(ctx, {
+						link: {
 							email: ctx.context.session.user.email,
 							userId: ctx.context.session.user.id
 						},
-						{ returnTo: callbackEndpoint }
-					);
+						additionalData: { returnTo: callbackEndpoint }
+					});
 					const url = buildSteamAuthorizationURL(callbackEndpoint, realm, state);
 					ctx.setHeader('Location', url);
 					return ctx.json({
@@ -264,8 +263,11 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 								}
 							}
 							if (location && stateErrorMatch) {
+								// Better Auth 1.7 places the error before the fragment, so keep the fragment.
+								const fragmentIndex = location.indexOf('#', stateErrorMatch.index);
+								const fragment = fragmentIndex === -1 ? '' : location.slice(fragmentIndex);
 								target = normalizeRedirectTarget(
-									location.slice(0, stateErrorMatch.index),
+									location.slice(0, stateErrorMatch.index) + fragment,
 									ctx.context.baseURL,
 									defaultErrorURL,
 									isTrustedRedirect
@@ -365,11 +367,10 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 
 						let existingAccount;
 						try {
-							existingAccount =
-								await ctx.context.internalAdapter.findAccountByProviderId(
-									steamId,
-									PROVIDER_ID
-								);
+							existingAccount = await ctx.context.internalAdapter.findAccountByKey({
+								providerId: PROVIDER_ID,
+								accountId: steamId
+							});
 						} catch (error) {
 							ctx.context.logger.error(
 								'The plugin could not check the Steam account owner.',
