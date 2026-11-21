@@ -42,19 +42,20 @@
 		"typecheck": "tsc --noEmit",
 		"prepublishOnly": "pnpm run lint && pnpm run test && pnpm run typecheck && pnpm run build"
 	},
+	"dependencies": {
+		"zod": "^4.5.4"
+	},
 	"peerDependencies": {
-		"better-auth": ">=1.6.21 <2",
-		"zod": ">=4"
+		"better-auth": ">=1.7.7 <2"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.1",
 		"@types/node": "^24.9.1",
-		"better-auth": "~1.6.29",
+		"better-auth": "~1.7.27",
 		"eslint": "^9.38.0",
 		"tsup": "^8.5.0",
 		"tsx": "^4.21.0",
-		"typescript-eslint": "^8.46.1",
 		"typescript": "^6.0.2",
-		"zod": "^4.3.6"
+		"typescript-eslint": "^8.46.1"
 	}
 }

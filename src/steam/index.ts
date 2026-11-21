@@ -139,8 +139,8 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 						ctx.context.baseURL,
 						isTrustedRedirect
 					);
-					const { state } = await generateState(ctx, undefined, {
-						returnTo: callbackEndpoint
+					const { state } = await generateState(ctx, {
+						additionalData: { returnTo: callbackEndpoint }
 					});
 					const url = buildSteamAuthorizationURL(callbackEndpoint, realm, state);
 					ctx.setHeader('Location', url);
@@ -193,14 +193,13 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 						ctx.context.baseURL,
 						isTrustedRedirect
 					);
-					const { state } = await generateState(
-						ctx,
-						{
+					const { state } = await generateState(ctx, {
+						link: {
 							email: ctx.context.session.user.email,
 							userId: ctx.context.session.user.id
 						},
-						{ returnTo: callbackEndpoint }
-					);
+						additionalData: { returnTo: callbackEndpoint }
+					});
 					const url = buildSteamAuthorizationURL(callbackEndpoint, realm, state);
 					ctx.setHeader('Location', url);
 					return ctx.json({
@@ -250,22 +249,17 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 							const location = headers
 								? new Headers(headers).get('location')
 								: null;
-							let stateErrorMatch: RegExpExecArray | undefined;
-							for (const match of location?.matchAll(/[?&]error=([^&#]+)/g) ?? []) {
-								let parsedCode: string;
-								try {
-									parsedCode = decodeURIComponent(match[1]);
-								} catch {
-									continue;
+							const redirect = location ? URL.parse(location) : null;
+							const errors = redirect?.searchParams.getAll('error') ?? [];
+							const stateError = errors.at(-1);
+							if (redirect && stateError && STATE_ERROR_CODES.has(stateError)) {
+								code = stateError;
+								redirect.searchParams.delete('error');
+								for (const earlier of errors.slice(0, -1)) {
+									redirect.searchParams.append('error', earlier);
 								}
-								if (STATE_ERROR_CODES.has(parsedCode)) {
-									code = parsedCode;
-									stateErrorMatch = match;
-								}
-							}
-							if (location && stateErrorMatch) {
 								target = normalizeRedirectTarget(
-									location.slice(0, stateErrorMatch.index),
+									redirect.toString(),
 									ctx.context.baseURL,
 									defaultErrorURL,
 									isTrustedRedirect
@@ -366,10 +360,10 @@ export const steamOpenID = (options: SteamPluginOptions) => {
 						let existingAccount;
 						try {
 							existingAccount =
-								await ctx.context.internalAdapter.findAccountByProviderId(
-									steamId,
-									PROVIDER_ID
-								);
+								await ctx.context.internalAdapter.findAccountByKey({
+									providerId: PROVIDER_ID,
+									accountId: steamId
+								});
 						} catch (error) {
 							ctx.context.logger.error(
 								'The plugin could not check the Steam account owner.',

@@ -590,7 +590,7 @@ test('uses a stable error when the Steam account owner lookup fails', async (con
 	const steamId = '76561198000000025';
 	const callbackURL = createCallbackURL(linkBody.url, steamId);
 	const adapter = (await auth.$context).internalAdapter;
-	context.mock.method(adapter, 'findAccountByProviderId', async () => {
+	context.mock.method(adapter, 'findAccountByKey', async () => {
 		throw new Error('The test adapter rejected the account lookup.');
 	});
 	mockSteam(context, steamId);
@@ -1085,11 +1085,9 @@ test('emits stable codes for account and session creation failures', async (cont
 			if (method === 'createSession') {
 				childContext.mock.method(adapter, 'createSession', async () => null);
 			} else if (method === 'createOAuthUser') {
-				childContext.mock.method(adapter, 'createOAuthUser', async () => {
-					throw new Error('The test adapter rejected the user.');
-				});
+				childContext.mock.method(adapter, 'createUser', async () => null);
 			} else {
-				childContext.mock.method(adapter, 'createOAuthUser', async () => {
+				childContext.mock.method(adapter, 'createUser', async () => {
 					throw APIError.from('BAD_REQUEST', {
 						code: 'UNKNOWN_OAUTH_ERROR',
 						message: 'The test adapter returned an unknown OAuth error.'
@@ -1117,7 +1115,7 @@ test('remaps OAuth helper redirects to a trusted error target', async (context) 
 	const steamId = '76561198000000022';
 	const callbackURL = createCallbackURL(body.url, steamId);
 	const adapter = (await auth.$context).internalAdapter;
-	context.mock.method(adapter, 'findOAuthUser', async () => {
+	context.mock.method(adapter, 'findAccountOwnerByKey', async () => {
 		throw new Error('The test adapter rejected the OAuth lookup.');
 	});
 	mockSteam(context, steamId);
@@ -1145,4 +1143,25 @@ test('declares only the public error codes that callback paths emit', () => {
 		'STEAM_UNABLE_TO_LINK_ACCOUNT',
 		'STEAM_VERIFICATION_FAILED'
 	]);
+});
+
+test('rejects non-string redirect targets in the request body', async () => {
+	const { auth } = createAuth();
+	const response = await auth.handler(
+		new Request(`${BASE_URL}/steam/login`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				origin: 'https://app.example'
+			},
+			body: JSON.stringify({ callbackURL: 42 })
+		})
+	);
+	assert.equal(response.status, 400);
+});
+
+test('rejects a callback without state', async () => {
+	const { auth } = createAuth();
+	const response = await auth.handler(new Request(`${BASE_URL}/steam/callback`));
+	assert.equal(response.status, 400);
 });

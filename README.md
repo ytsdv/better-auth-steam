@@ -1,6 +1,6 @@
 # better-auth-steam
 
-Steam OpenID 2.0 plugin for Better Auth 1.6.21 or later.
+Steam OpenID 2.0 plugin for Better Auth 1.7.7 or later.
 
 It adds a Steam sign-in and account-link flow:
 
