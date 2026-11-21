@@ -134,8 +134,9 @@ pnpm run build
 
 ## Releasing
 
-The `Publish` workflow publishes to npm with Trusted Publishing, so no npm
-token is stored. To release:
+The `Publish` workflow stages releases on npm with Trusted Publishing, so no
+npm token is stored. A staged version is not installable until a maintainer
+approves it with 2FA. To release:
 
 ```bash
 npm version minor   # or patch/major: commits the version and tags vX.Y.Z
@@ -144,4 +145,10 @@ gh release create vX.Y.Z --generate-notes
 ```
 
 Publishing the GitHub release starts the workflow. It checks that the tag
-matches `package.json`, runs lint, tests, typecheck, and build, then publishes.
+matches `package.json`, runs lint, tests, typecheck, and build, then stages the
+version. Approve it on npmjs.com, or with:
+
+```bash
+npm stage list better-auth-steam
+npm stage approve <stage-id>
+```
