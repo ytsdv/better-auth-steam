@@ -131,3 +131,17 @@ pnpm run test
 pnpm run typecheck
 pnpm run build
 ```
+
+## Releasing
+
+The `Publish` workflow publishes to npm with Trusted Publishing, so no npm
+token is stored. To release:
+
+```bash
+npm version minor   # or patch/major: commits the version and tags vX.Y.Z
+git push origin main --follow-tags
+gh release create vX.Y.Z --generate-notes
+```
+
+Publishing the GitHub release starts the workflow. It checks that the tag
+matches `package.json`, runs lint, tests, typecheck, and build, then publishes.
