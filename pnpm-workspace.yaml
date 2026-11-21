@@ -1,2 +1,5 @@
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true
+  # Optional peers of better-auth that the plugin never uses.
+  "@prisma/client": false
+  better-sqlite3: false
